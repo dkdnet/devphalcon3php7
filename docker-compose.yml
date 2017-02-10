@@ -1,0 +1,92 @@
+
+version: '2'
+
+services:
+  web:
+    image: nginx:latest
+    ports:
+      - "80:80"
+    volumes:
+      - ~/Code:/code
+      - ./nginx/sites:/etc/nginx/conf.d
+      - ./nginx/logs:/var/log/nginx
+    depends_on:
+      - php
+    links:
+      - mysql
+  php:
+    build:
+      context: ./php-fpm
+      args:
+          - INSTALL_XDEBUG=true
+          - INSTALL_SOAP=false
+          - INSTALL_MONGO=true
+          - INSTALL_ZIP_ARCHIVE=true
+          - INSTALL_BCMATH=true
+          - INSTALL_PHPREDIS=true
+          - INSTALL_MEMCACHED=true
+          - INSTALL_OPCACHE=false
+          - INSTALL_EXIF=false
+          - INSTALL_AEROSPIKE_EXTENSION=false
+          - CODEIGNITER=false
+          - INSTALL_PHALCON=true
+      dockerfile: Dockerfile-70
+    volumes:
+      - ~/Code:/code
+### MySQL Container #########################################
+
+  mysql:
+    build:
+      context: ./mysql
+      # 定制初始化MySQL
+      args:
+          - MYSQL_DATABASE=homestead
+          - MYSQL_USER=homestead
+          - MYSQL_PASSWORD=secret
+
+          - MYSQL_ROOT_PASSWORD=root
+    volumes:
+      - ./db_data/mysql:/var/lib/mysql
+    ports:
+      - "3306:3306"
+
+### MongoDB Container #######################################
+
+  mongo:
+      build: ./mongo
+      ports:
+          - "27017:27017"
+      volumes:
+          - ./db_data/mongo:/data/db
+
+### Redis Container #########################################
+
+  redis:
+      build: ./redis
+      volumes:
+          - ./db_data/redis:/data
+      ports:
+          - "6379:6379"
+
+### Memcached Container #####################################
+
+  memcached:
+      build: ./memcached
+      volumes:
+          - memcached:/var/lib/memcached
+      ports:
+          - "11211:11211"
+      links:
+          - php
+
+### Volumes Setup ###########################################
+
+volumes:
+    mysql:
+        driver: "local"
+    memcached:
+        driver: "local"
+    redis:
+        driver: "local"
+    mongo:
+        driver: "local"
